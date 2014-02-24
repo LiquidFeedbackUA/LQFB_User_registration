@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Гаразд (Liquid Feedback UA)</title>
+
+    <!-- Bootstrap -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link href="./css/bootstrap-datetimepicker.min.css" rel="stylesheet">
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+    	<div class="row">
+    		<div class="col-md-6 col-md-offset-3">
+    			<h1 class="page-header">Регистрация</h1>
+    			<form action="./post.php" method="POST" role="form" id="reg_form">
+    				<div class="radio">
+						  <label>
+						    <input type="radio" name="reg_type" value="anonymous" checked="checked" data-validate="full">
+						    анонимная регистрация
+						  </label>
+						</div>
+    				<div class="radio">
+						  <label>
+						    <input type="radio" name="reg_type" value="id_offline">
+						    регистрация по паспорту (offline)
+						  </label>
+						</div>
+    				<div class="radio">
+						  <label>
+						    <input type="radio" name="reg_type" value="id_online" disabled>
+						    регистрация по паспорту (online)
+						  </label>
+						</div>
+					  <div class="form-group">
+					    <label for="dob" class="control-label">Дата рождения</label>
+					    <div class='input-group date' id='datepicker'>
+                <input type="text" class="form-control" id="dob" name="dob" data-validate="full" data-format="YYYY/MM/DD">
+                <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+	            </div>
+					  </div>
+					  <div class="form-group">
+					    <label for="email" class="control-label">Email адрес</label>
+					    <input type="email" class="form-control" name="email" id="email" placeholder="Email" data-validate="full">
+					  </div>
+					  <div class="form-group">
+					    <label for="region" class="control-label">Область</label>
+					    <input type="text" class="form-control" id="region" name="region" placeholder="Область" data-validate="full">
+					  </div>
+
+					  <fieldset rel="reg_type" data-type="id_offline" class="hidden">
+					  	<legend>Дополнительная информация (Offline регистрация)</legend>
+						  <div class="form-group">
+						    <label for="id_code" class="control-label">Серия и номер паспорта</label>
+						    <input type="text" class="form-control" id="id_code" name="id_code" placeholder="XX-123456" data-validate="id">
+						  </div>
+						</fieldset>
+					  <fieldset rel="reg_type" data-type="id_online" class="hidden">
+					  	<legend>Дополнительная информация (Online регистрация)</legend>
+						  <div class="form-group">
+						    <label for="id_scan" class="control-label">Фото паспорта вместе с вашим лицом</label>
+						    <input type="file" name="id_scan" id="id_scan" data-validate="full">
+						    <p class="help-block">Вы можете закрыть на фото такую информацию как ФИО и локация.</p>
+						  </div>
+						</fieldset>
+						<input type="hidden" name="hash" value>
+					  <button type="submit" class="btn btn-block btn-info">Отправить</button>
+					</form>
+    		</div>
+    	</div>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha256.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="./js/moment.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/bootstrap-datetimepicker.js"></script>
+    <script src="./js/ru.js"></script>
+    <script type="text/javascript">
+    	(function($){
+	    	$(document).ready(function(){
+	    		$('#datepicker').datetimepicker({
+            language: 'ru',
+            pickTime: false
+          });
+
+	    		$('body')
+	    			.on('change', '#reg_form [name="reg_type"]', function(){
+	    				var $this = $(this);
+
+    					$('fieldset[rel="'+$this.attr('name')+'"]').addClass('hidden');
+    					$('fieldset[rel="'+$this.attr('name')+'"][data-type="'+$this.val()+'"]').removeClass('hidden');
+		    		})
+		    		.on('focus', '.has-error [data-validate]', function(){
+		    			$(this).parents('.has-error').removeClass('has-error');
+		    		})
+		    		.on('keyup', '#id_code', function(){
+			    			var regex = /^[А-Я]{2}\-[0-9]{6}$/g;
+			    			
+	  						if(!regex.test($.trim($(this).val())))
+	  							$(this).parents('.form-group').addClass('has-error');
+		    		})
+		    		.on('change', '#id_code,#dob', function(){
+		    			var id_v = $('#id_code').val().replace(/[^А-Я0-9]/g, ''),
+		    					date = $('#dob').val().replace(/[^А-Я0-9]/g, ''),
+		    					hash = CryptoJS.SHA256(id_v+date);
+
+			    			$('[name="hash"]').val(hash);
+		    		})
+		    		.on('submit', '#reg_form', function(event){
+		    			var $this = $(this),
+		    					valid = true;
+
+		    			$this.find('[data-validate]:visible').each(function(){
+		    				var $field = $(this);
+
+		    				switch($field.data('validate')) {
+		    					case "full":
+		    						if(!$field.val() || $.trim($field.val()) == '') {
+		    							valid = false;
+		    							$(this).parents('.form-group').addClass('has-error');
+		    						}
+		    						break;
+
+		    					case "id":
+					    			var regex = /^[А-Я]{2}\-[0-9]{6}$/g;
+					    			
+		    						if(!regex.test($.trim($field.val()))) {
+		    							valid = false;
+		    							$field.parents('.form-group').addClass('has-error');
+		    						}
+		    						break;
+		    				}
+		    			});
+
+		    			if(valid) {
+		    				$this.addClass('loading');
+
+		    				$.post($this.attr('action'), $this.serialize(), function(response){
+		    					if(typeof response.success != 'undefined') {
+		    						if(response.success) {
+		    							$this.html('<p>Запрос отправлен успешно</p>');
+		    							$this.removeClass('loading');
+		    						} else {
+		    							if(typeof response.errors != 'undefined') {
+		    								$.each(response.errors, function(name, error){
+		    									if($('[name="'+name+'"]').length) {
+		    										$('[name="'+name+'"]').parents('.form-group').addClass('has-error');
+		    									}
+		    								});
+		    							}
+		    						}
+		    					}
+		    				}, 'json');
+		    			}
+
+		    			event.preventDefault();
+		    			event.stopPropagation();
+		    		});
+	    	});
+    	})(jQuery);
+    </script>
+  </body>
+</html>
